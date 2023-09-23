@@ -38,7 +38,7 @@ void parseNetDataResponse(WiFiClient &client, NetChartData &data)
 {
     // Stream& input;
 
-    DynamicJsonDocument doc(2048);
+    DynamicJsonDocument doc(4096);
 
     DeserializationError error = deserializeJson(doc, client);
 
@@ -90,7 +90,7 @@ bool getNetDataInfoWithDimension(String chartID, NetChartData &data, String dime
     const char *NETDATA_HOST = "192.168.100.1";
     int NETDATA_PORT = 19999;
     // String reqRes = "/api/v0/data?chart=sensors.temp_thermal_zone0_thermal_thermal_zone0&format=json&points=9&group=average&gtime=0&options=s%7Cjsonwrap%7Cnonzero&after=-10";
-    String reqRes = "/api/v1/data?chart=" + chartID + "&format=array&points=9&group=average&gtime=0&options=s%7Cjsonwrap%7Cnonzero&after=-2";
+    String reqRes = "/api/v1/data?chart=" + chartID + "&format=json&points=1&group=average&gtime=0&options=s%7Cjsonwrap%7Cnonzero&after=-2";
     reqRes = reqRes + "&dimensions=" + dimensions_filter;
 
     WiFiClient client;
