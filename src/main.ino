@@ -230,9 +230,9 @@ void getNetworkSent()
     if (getNetDataInfoWithDimension("net.eth0", netChartData, "sent"))
     {
         Serial.print("Sent: ");
-        Serial.println(String(netChartData.max).c_str());
+        Serial.println(String(netChartData.min).c_str());
 
-        up_speed = -1 * netChartData.max / 8.0;
+        up_speed = -1 * netChartData.min / 8.0;
         up_speed_max = updateNetSeries(upload_serise, up_speed);
         lv_chart_set_points(chart, ser1, upload_serise);
     }
