@@ -5,7 +5,10 @@
 #include <ArduinoJson.h>
 #include <string>
 
-class NetChartData
+WiFiManagerParameter netdata_host("host", "NetData Host", "192.168.8.1", 40);
+WiFiManagerParameter netdata_port("port", "NetData Port", "19999", 6);
+
+class NetDataResponse
 {
 public:
     int api;
@@ -34,12 +37,9 @@ public:
     double max;
 };
 
-void parseNetDataResponse(WiFiClient &client, NetChartData &data)
+void parseNetDataResponse(WiFiClient &client, NetDataResponse &data)
 {
-    // Stream& input;
-
     DynamicJsonDocument doc(4096);
-
     DeserializationError error = deserializeJson(doc, client);
 
     if (error)
@@ -72,7 +72,6 @@ void parseNetDataResponse(WiFiClient &client, NetChartData &data)
     data.points = doc["points"];              // 2
     data.format = doc["format"].as<String>(); // "array"
 
-    JsonArray db_points_per_tier = doc["db_points_per_tier"];
     data.result = doc["result"];
     data.min = doc["min"]; // 2.1594684
     data.max = doc["max"]; // 3.7468776
@@ -84,23 +83,31 @@ void parseNetDataResponse(WiFiClient &client, NetChartData &data)
  *  system.cpu - CPU占用率信息
  *  sensors.temp_thermal_zone0_thermal_thermal_zone - CPU 温度信息
  */
-
-bool getNetDataInfoWithDimension(String chartID, NetChartData &data, String dimensions_filter)
+bool getNetDataInfoWithDimension(String chartID, NetDataResponse &data, String dimensions_filter)
 {
-    const char *NETDATA_HOST = "192.168.100.1";
-    int NETDATA_PORT = 19999;
-    // String reqRes = "/api/v0/data?chart=sensors.temp_thermal_zone0_thermal_thermal_zone0&format=json&points=9&group=average&gtime=0&options=s%7Cjsonwrap%7Cnonzero&after=-10";
-    String reqRes = "/api/v1/data?chart=" + chartID + "&format=json&points=1&group=average&gtime=0&options=s%7Cjsonwrap%7Cnonzero&after=-2";
-    reqRes = reqRes + "&dimensions=" + dimensions_filter;
-
     WiFiClient client;
-    bool ret = false;
+
+    const char* NETDATA_HOST = netdata_host.getValue();
+    const char* NETDATA_PORT = netdata_port.getValue();
+
+    String path = "/api/v1/data";
+    path = path + "?chart=" + chartID;
+    path = path + "&format=json";
+    path = path + "&points=1";
+    path = path + "&gtime=0";
+    path = path + "&group=average";
+    path = path + "&dimensions=" + dimensions_filter;
+    path = path + "&options=s%7Cjsonwrap%7Cnonzero&after=-2";
 
     // 建立http请求信息
-    String httpRequest = String("GET ") + reqRes + " HTTP/0.1\r\n" + "Host: " + NETDATA_HOST + "\r\n" + "Connection: close\r\n\r\n";
+    String httpRequest = "";
+    httpRequest = httpRequest + "GET " + path + " HTTP/0.1\r\n";
+    httpRequest = httpRequest + "Host: " + NETDATA_HOST + "\r\n";
+    httpRequest = httpRequest + "Connection: close\r\n\r\n";
 
+    bool ret = false;
     // 尝试连接服务器
-    if (client.connect(NETDATA_HOST, NETDATA_PORT))
+    if (client.connect(NETDATA_HOST, atoi(NETDATA_PORT)))
     {
         // 向服务器发送http请求信息
         client.print(httpRequest);
@@ -108,9 +115,9 @@ bool getNetDataInfoWithDimension(String chartID, NetChartData &data, String dime
         Serial.println(httpRequest);
 
         // 获取并显示服务器响应状态行
-        String status_response = client.readStringUntil('\n');
-        Serial.print("status_response: ");
-        Serial.println(status_response);
+        String response_status = client.readStringUntil('\n');
+        Serial.print("response_status: ");
+        Serial.println(response_status);
         // 使用find跳过HTTP响应头
         if (client.find("\r\n\r\n"))
         {
@@ -130,7 +137,7 @@ bool getNetDataInfoWithDimension(String chartID, NetChartData &data, String dime
     return ret;
 }
 
-bool getNetDataInfo(String chartID, NetChartData &data)
+bool getNetDataInfo(String chartID, NetDataResponse &data)
 {
     return getNetDataInfoWithDimension(chartID, data, "");
 }
